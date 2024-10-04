@@ -1,0 +1,1 @@
+java -cp "lib/*;mascot-swissknife-${pom.version}.jar;config" -Xmx1g fr.edyp.mascot.fasta.FastaUtil %*
