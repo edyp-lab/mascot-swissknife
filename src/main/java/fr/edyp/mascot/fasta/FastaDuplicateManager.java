@@ -121,10 +121,8 @@ public class FastaDuplicateManager {
         int index = line.indexOf(" ");
         boolean hasDesc = index>=0;
         currentAcc = line.substring(1);
-        String desc = "";
         if(hasDesc) {
           currentAcc = line.substring(1, index);
-          desc = line.substring(index);
         }
 
       } else { //read seq of current entry

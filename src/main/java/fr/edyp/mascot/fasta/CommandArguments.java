@@ -7,9 +7,12 @@ public class CommandArguments {
 
   public final static String DB_USAGE_COMMAND= "db_usage";
   public final static String SHORTEN_COMMAND= "shorten";
+  public final static String REMOVE_EMPTY_COMMAND= "rem_empty";
   public final static String DUPLICATE_CMP_COMMAND= "cmp_duplicates";
 
   public final static String DUPLICATE_REPLACE_COMMAND= "replace_duplicates";
+  public final static String EXTRACT_TAXO_COMMAND= "extract_taxo";
+
 
   @Parameters(commandNames =  {DB_USAGE_COMMAND}, commandDescription = "get information (last date...) on the usage of fasta db", separators = "=")
   public static class FastaDBUsageCommand {
@@ -38,6 +41,14 @@ public class CommandArguments {
     public boolean help;
   }
 
+  @Parameters(commandNames =  {REMOVE_EMPTY_COMMAND}, commandDescription = "remove entries which have no sequences", separators = "=")
+  public static class FastaRemoveEmptyCommand {
+    @Parameter(names = {"-i"}, description = "path to the input fasta file to process. Same file with _clean suffix will be created", required = true)
+    public String inputFile;
+    @Parameter(names = {"-h", "--help"}, help = true)
+    public boolean help;
+  }
+
   @Parameters(commandNames =  {DUPLICATE_CMP_COMMAND}, commandDescription = "Search for duplicate in fasta file and compare their sequence. Result is given in (log) output.", separators = "=")
   public static class FastaCompareDuplicateCommand {
     @Parameter(names = {"-i"}, description = "path to the input fasta file to process.", required = true)
@@ -52,6 +63,19 @@ public class CommandArguments {
     public String inputFile;
     @Parameter(names = {"-o"}, description = "path to the resulting fasta file.", required = true)
     public String outputFile;
+    @Parameter(names = {"-h", "--help"}, help = true)
+    public boolean help;
+  }
+
+  @Parameters(commandNames =  {EXTRACT_TAXO_COMMAND}, commandDescription = "Search for duplicate in fasta file and rename them using index. Result is saved in new fasta file.", separators = "=")
+  public static class FastaExtractTaxoCommand {
+    @Parameter(names = {"-i"}, description = "path to the input fasta file to process.", required = true)
+    public String inputFile;
+    @Parameter(names = {"-o"}, description = "path to the resulting fasta file. Same as input with taxo mnemonic as suffix will be used if not specified", required = false)
+    public String outputFile;
+    @Parameter(names = {"-t"}, description = "taxonomy mnemonic to extract from 'input' fasta file.", required = true)
+    public String taxoMnemo;
+
     @Parameter(names = {"-h", "--help"}, help = true)
     public boolean help;
   }

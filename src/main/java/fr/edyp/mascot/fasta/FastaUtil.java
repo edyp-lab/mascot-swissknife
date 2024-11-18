@@ -3,6 +3,7 @@ package fr.edyp.mascot.fasta;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.MissingCommandException;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,8 +42,8 @@ public class FastaUtil {
    * Clean Accession by replacing : , or " or ' by _
    * Write back accession +  entry as previously formatted
    *
-   * @param fin
-   * @param fout
+   * @param fin specify fasta file to shorten accession for
+   * @param fout specify output file to write new fasta file
    */
   public static void shortenAccession(File fin, File fout, String separator) throws IOException{
 
@@ -103,6 +104,44 @@ public class FastaUtil {
         writer.write('\n');
       }
     }
+    writer.flush();
+    fr.close();
+    fw.close();
+
+  }
+
+  public static void removeEmptyEntries(File fin, File fout) throws IOException{
+
+    FileReader fr = new FileReader(fin);
+    FileWriter fw = new FileWriter(fout);
+    BufferedWriter writer = new BufferedWriter(fw);
+    BufferedReader br = new BufferedReader(fr);
+
+    String prevEntry = "";
+    boolean correctEntry = false;
+    String line;
+    while ((line = br.readLine()) != null) {
+      if (line.startsWith(">")) {
+        prevEntry = line;
+        correctEntry = false; //suppose incorrect entry
+      } else {
+        //sequence line. If prevEntry not empty, first sequence line. Verify it is correct
+        if(StringUtils.isNotEmpty(prevEntry)) { //first seq line
+          if(StringUtils.isNotEmpty(line)) {
+            correctEntry = true;
+            writer.write(prevEntry);
+            writer.write('\n');
+            prevEntry = ""; //reset entry
+          }
+        }
+        if(correctEntry) {
+          //write sequence
+          writer.write(line); //write sequence
+          writer.write('\n');
+        }
+      }
+    }
+    writer.flush();
     fr.close();
     fw.close();
 
@@ -113,18 +152,24 @@ public class FastaUtil {
     CommandArguments.FastaShortenAccCommand fastaShortenCommand = new CommandArguments.FastaShortenAccCommand();
     CommandArguments.FastaCompareDuplicateCommand fastaCmpDupCommand = new CommandArguments.FastaCompareDuplicateCommand();
     CommandArguments.FastaReplaceDuplicateCommand fastaReplaceDupCommand = new CommandArguments.FastaReplaceDuplicateCommand();
+    CommandArguments.FastaExtractTaxoCommand fastaExtractTaxoCommand = new CommandArguments.FastaExtractTaxoCommand();
+    CommandArguments.FastaRemoveEmptyCommand fastaRemoveEmptyCommand = new CommandArguments.FastaRemoveEmptyCommand();
 
     jCmd.addCommand(fastaDBUsageCommand);
     jCmd.addCommand(fastaShortenCommand);
     jCmd.addCommand(fastaCmpDupCommand);
     jCmd.addCommand(fastaReplaceDupCommand);
+    jCmd.addCommand(fastaExtractTaxoCommand);
+    jCmd.addCommand(fastaRemoveEmptyCommand);
 
     try {
       String parsedCmd = parseCommand(args);
       switch (parsedCmd) {
         case CommandArguments.DB_USAGE_COMMAND: {
-          if (fastaDBUsageCommand.help)
+          if (fastaDBUsageCommand.help) {
             jCmd.usage();
+            System.exit(0);
+          }
 
           DBUsageLog dbUsage = new DBUsageLog(fastaDBUsageCommand.searchesLogPath, fastaDBUsageCommand.mascotDatPath);
           dbUsage.printFastaDBInfo(fastaDBUsageCommand.dbName, fastaDBUsageCommand.outputFile);
@@ -132,20 +177,49 @@ public class FastaUtil {
         }
 
         case CommandArguments.SHORTEN_COMMAND: {
+          if (fastaShortenCommand.help) {
+            jCmd.usage();
+            System.exit(0);
+          }
+
           File fIn = new File(fastaShortenCommand.inputFile);
           if (!fIn.exists()) {
             logger.error("Can't find specified file " + fIn.getAbsolutePath());
             jCmd.usage();
             System.exit(1);
           }
-          String name = FilenameUtils.getBaseName(fastaShortenCommand.inputFile) + "_short" + FilenameUtils.getExtension(fastaShortenCommand.inputFile);
-          File fOut = new File(name);
+
+          File fOut =  createFileWithSuffix(fIn, "_short" );
 
           FastaUtil.shortenAccession(fIn, fOut, "_");
           break;
         }
 
+        case CommandArguments.REMOVE_EMPTY_COMMAND: {
+          if (fastaRemoveEmptyCommand.help) {
+            jCmd.usage();
+            System.exit(0);
+          }
+
+          File fIn = new File(fastaRemoveEmptyCommand.inputFile);
+          if (!fIn.exists()) {
+            logger.error("Can't find specified file " + fIn.getAbsolutePath());
+            jCmd.usage();
+            System.exit(1);
+          }
+
+          File fOut =  createFileWithSuffix(fIn, "_clean" );
+          FastaUtil.removeEmptyEntries(fIn, fOut);
+          break;
+        }
+
+
         case CommandArguments.DUPLICATE_CMP_COMMAND: {
+          if (fastaCmpDupCommand.help) {
+            jCmd.usage();
+            System.exit(0);
+          }
+
           File fIn = new File(fastaCmpDupCommand.inputFile);
           if (!fIn.exists()) {
             logger.error("Can't find specified file " + fIn.getAbsolutePath());
@@ -158,6 +232,10 @@ public class FastaUtil {
         }
 
         case CommandArguments.DUPLICATE_REPLACE_COMMAND: {
+          if (fastaReplaceDupCommand.help) {
+            jCmd.usage();
+            System.exit(0);
+          }
           File fIn = new File(fastaReplaceDupCommand.inputFile);
           File fOut = new File(fastaReplaceDupCommand.outputFile);
           if (!fIn.exists()) {
@@ -174,11 +252,27 @@ public class FastaUtil {
           FastaDuplicateManager.compareDuplicateInFasta(fIn, " ");
           break;
         }
+
+        case CommandArguments.EXTRACT_TAXO_COMMAND: {
+          if (fastaExtractTaxoCommand.help) {
+            jCmd.usage();
+            System.exit(0);
+          }
+          File fIn = new File(fastaExtractTaxoCommand.inputFile);
+          String outFileName =fastaExtractTaxoCommand.outputFile;
+          File fOut = (StringUtils.isNotEmpty(outFileName)) ? new File(fIn.getParentFile(), outFileName) : createFileWithSuffix(fIn,fastaExtractTaxoCommand.taxoMnemo );
+          FastaTaxoUtil.extractTaxonomy(fIn,fOut,fastaExtractTaxoCommand.taxoMnemo);
+        }
       }
     } catch(Exception e) {
       logger.error("Error in FastaUtil: "+e.getMessage(), e);
       jCmd.usage();
       System.exit(1);
     }
+  }
+
+  private static File
+  createFileWithSuffix(File sourceFile, String suffix){
+    return new File(sourceFile.getParentFile(), FilenameUtils.getBaseName(sourceFile.getName()) + "_" + suffix+"."+  FilenameUtils.getExtension(sourceFile.getName()));
   }
 }
