@@ -120,8 +120,14 @@ public class FastaUtil {
     String prevEntry = "";
     boolean correctEntry = false;
     String line;
+    int nbIncorrect =0;
     while ((line = br.readLine()) != null) {
       if (line.startsWith(">")) {
+        if(StringUtils.isNotEmpty(prevEntry)) {
+          // 2 entries witout seq...
+          logger.info("Entry " +prevEntry + " has no sequence. It will not be written to output file");
+          nbIncorrect++;
+        }
         prevEntry = line;
         correctEntry = false; //suppose incorrect entry
       } else {
@@ -141,6 +147,7 @@ public class FastaUtil {
         }
       }
     }
+    logger.info("Found  " +nbIncorrect + " empty entries.");
     writer.flush();
     fr.close();
     fw.close();
@@ -189,7 +196,7 @@ public class FastaUtil {
             System.exit(1);
           }
 
-          File fOut =  createFileWithSuffix(fIn, "_short" );
+          File fOut =  createFileWithSuffix(fIn, "short" );
 
           FastaUtil.shortenAccession(fIn, fOut, "_");
           break;
@@ -208,7 +215,7 @@ public class FastaUtil {
             System.exit(1);
           }
 
-          File fOut =  createFileWithSuffix(fIn, "_clean" );
+          File fOut =  createFileWithSuffix(fIn, "clean" );
           FastaUtil.removeEmptyEntries(fIn, fOut);
           break;
         }
