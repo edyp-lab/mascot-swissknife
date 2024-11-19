@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 /**
@@ -65,7 +66,7 @@ public class DBUsageLog {
 
       if(line.trim().equals("Databases")) {
         dbSectionStart = true;
-        logger.debug(" --- Start Databases section");
+        logger.debug(" ---DB Status, Start Databases section");
         line = br.readLine();
         continue;
       }
@@ -158,9 +159,14 @@ public class DBUsageLog {
         infoByDbName.put(dbName,new DbInfo(dbName));
       else
         readAll = true;
+      int nbLineRead = 0;
+      String msg = readAll ? "for all databases." : " for "+dbName;
+      logger.info(" Start read searches log file "+msg);
 
       while (line != null) {
        // System.out.println(" -----------------  " );
+        nbLineRead++;
+
         String[] lineItems = line.split("\t"); //splitting the line and adding its items in String[]
         int max = Math.min(LAST_COL+1, lineItems.length);
         int index =0;
@@ -212,12 +218,19 @@ public class DBUsageLog {
             case COL_START_TIME:
               if(value!=null) {
                 value = value.trim().replaceAll("  ", " ");
-                LocalDate currentDate = LocalDate.parse(value, dateFormat);
-                currentDbInfos.forEach(di -> {
-                  if (di.lastUsage.isBefore(currentDate)) {
-                    di.lastUsage = currentDate;
-                  }
-                });
+                try {
+                  LocalDate currentDate = LocalDate.parse(value, dateFormat);
+                  currentDbInfos.forEach(di -> {
+                    if (di.lastUsage.isBefore(currentDate)) {
+                      di.lastUsage = currentDate;
+                    }
+                  });
+                } catch (DateTimeParseException dtpe){
+                  logger.debug(" ------------ Line "+nbLineRead+" ERROR Parsing "+value+". Line skipped for :");
+                  currentDbInfos.forEach(di -> {
+                    logger.debug(" - "+di.name);
+                  });
+                }
               }
           }
 
@@ -229,6 +242,7 @@ public class DBUsageLog {
         line = tsvReader.readLine();
       }
       tsvReader.close();
+      logger.info(" Read "+nbLineRead+" lines ...");
       return infoByDbName;
 
     } finally {
