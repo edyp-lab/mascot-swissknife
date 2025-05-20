@@ -179,7 +179,7 @@ public class FastaUtil {
           }
 
           DBUsageLog dbUsage = new DBUsageLog(fastaDBUsageCommand.searchesLogPath, fastaDBUsageCommand.mascotDatPath);
-          dbUsage.printFastaDBInfo(fastaDBUsageCommand.dbName, fastaDBUsageCommand.outputFile);
+          dbUsage.printFastaDBInfo(fastaDBUsageCommand.dbName, fastaDBUsageCommand.outputFile, fastaDBUsageCommand.all);
           break;
         }
 

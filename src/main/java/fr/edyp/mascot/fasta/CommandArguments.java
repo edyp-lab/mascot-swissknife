@@ -31,6 +31,8 @@ public class CommandArguments {
     @Parameter(names = {"-h", "--help"}, help = true)
     public boolean help;
 
+    @Parameter(names = {"-a", "--all"}, description = "get All usage dates, ,not only last ")
+    public boolean all;
   }
 
   @Parameters(commandNames =  {SHORTEN_COMMAND}, commandDescription = "Try to shorten fasta accession by using car _ or / to split", separators = "=")
@@ -67,7 +69,7 @@ public class CommandArguments {
     public boolean help;
   }
 
-  @Parameters(commandNames =  {EXTRACT_TAXO_COMMAND}, commandDescription = "Search for duplicate in fasta file and rename them using index. Result is saved in new fasta file.", separators = "=")
+  @Parameters(commandNames =  {EXTRACT_TAXO_COMMAND}, commandDescription = "Extract a taxomy from a fasta using mnemonic. Result is saved in new fasta file.", separators = "=")
   public static class FastaExtractTaxoCommand {
     @Parameter(names = {"-i"}, description = "path to the input fasta file to process.", required = true)
     public String inputFile;

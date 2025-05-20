@@ -101,6 +101,10 @@ public class DBUsageLog {
   }
 
   public void printFastaDBInfo(String dbName, String outFile){
+    printFastaDBInfo(dbName, outFile, false);
+  }
+
+  public void printFastaDBInfo(String dbName, String outFile, boolean all){
     BufferedWriter writer = null;
     try {
       File outputFile = (StringUtils.isNotEmpty(outFile)) ? new File(outFile) : null;
@@ -108,7 +112,8 @@ public class DBUsageLog {
       if(outputFile!=null) {
         FileWriter fw = new FileWriter(outFile);
         writer = new BufferedWriter(fw);
-        writer.write("Name\tLast Usage Date\tStatus (<A>ctive, <I>nactive, <D>eleted)\n");
+        String colNames = all ?"Name\tLast Usage Date\tStatus (<A>ctive, <I>nactive, <D>eleted)\tAll Dates\n" : "Name\tLast Usage Date\tStatus (<A>ctive, <I>nactive, <D>eleted)\n";
+        writer.write(colNames);
         writeInfo = true;
       }
 
@@ -118,11 +123,16 @@ public class DBUsageLog {
         DbInfo info = infos.get(name);
         if(writeInfo){
           String date = (info.found) ?info.lastUsage.toString() :"-";
-          writer.write(name+"\t"+date+"\t"+info.status+"\n");
+          String allDates = (info.found) ?info.allDateAsString() :"-";
+          String values = all ? (name+"\t"+date+"\t"+info.status+"\t"+allDates+"\n") :  (name+"\t"+date+"\t"+info.status+"\n") ;
+          writer.write(values);
         } else {
-          if (info.found)
-            logger.info("DB Fasta\t" + name + "\tLast search done on:\t" + info.lastUsage+"\tactive ?\t"+info.status);
-          else
+          if (info.found) {
+            String values = all ? ("DB Fasta\t" + name + "\tLast search done on:\t" + info.lastUsage + "\tactive ?\t" + info.status) :
+                    ("DB Fasta\t" + name + "\tLast search done on:\t" + info.lastUsage + "\tactive ?\t" + info.status+"\tall dates:\t"+info.allDateAsString());
+
+            logger.info(values);
+          } else
             logger.info("DB Fasta\t" + name + "\twas NOT Found in searches log.\t \tactive?\t"+info.status);
         }
       }
@@ -224,6 +234,7 @@ public class DBUsageLog {
                     if (di.lastUsage.isBefore(currentDate)) {
                       di.lastUsage = currentDate;
                     }
+                    di.allUsages.add(currentDate);
                   });
                 } catch (DateTimeParseException dtpe){
                   logger.debug(" ------------ Line "+nbLineRead+" ERROR Parsing "+value+". Line skipped for :");
@@ -254,6 +265,7 @@ public class DBUsageLog {
 
   static class DbInfo {
     LocalDate lastUsage;
+    List<LocalDate> allUsages;
     String name;
     boolean found;
     String status;
@@ -262,6 +274,16 @@ public class DBUsageLog {
       found = false;
       status="-";
       lastUsage = LocalDate.of(1900, 1, 1);
+      allUsages = new ArrayList<>();
     }
+
+    public String allDateAsString(){
+      StringBuilder sb = new StringBuilder();
+      for(LocalDate d : allUsages){
+        sb.append(d).append(";;");
+      }
+      return sb.toString();
+    }
+
   }
 }
